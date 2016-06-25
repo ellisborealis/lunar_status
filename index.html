@@ -7,38 +7,14 @@
 </head>
 <body>
 
-<p>Click the button to get your coordinates.</p>
-
-<button onclick="getLocation()">Try It</button>
-
-<p id="demo"></p>
-
 <script>
-var x = document.getElementById("demo");
-
-function getLocation() {
-    if (navigator.geolocation)
-	{
-		console.log("Entered getLocation function");
-        navigator.geolocation.getCurrentPosition(showPosition,errorMessage,{maximumAge:60000, timeout:5000, enableHighAccuracy:true});
-    }
-	else
-	{
-		unsupportedMessage();
-    }
-}
-
-function unsupportedMessage()
+function getCurrentMoonPhase()
 {
-	$("#demo").html("Geolocation is not supported by this browser.");
-}
-
-function errorMessage(err) {
-  $("#demo").html('ERROR(' + err.code + '): ' + err.message);
-};
-
-function showPosition(position) {
-    $("#demo").html(position.coords.latitude + ", " + position.coords.longitude);
+	var urlToApi = "http://farmsense-prod.apigee.net/v1/moonphases/?d=" + Math.floor(Date.now()/1000);
+	var dataToSendToApi = [];
+	return $.getJSON(urlToApi, dataToSendToApi, function(arg1, arg2, returnedData) {
+		return returnedData;
+	});
 }
 </script>
 
