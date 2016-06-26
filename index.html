@@ -6,39 +6,87 @@
 	<script src="https://code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
 </head>
 <body>
-<button type="button" onclick="getPlanetPositions();">Get Planet Positions</button>
-<p id="earthState"></p>
-<p id="earthMoonState"></p>
-<p id="sunState"></p>
+<button type="button" onclick="getPlanetPositions();" style="z-index:2;">Get Planet Positions</button>
+<p id="earthState" style="z-index:2;"></p>
+<p id="moonState" style="z-index:2;"></p>
+<p id="sunState" style="z-index:2;"></p>
+<svg id="canvas" style="width:100%;height:70%;position:absolute;left:0;bottom:0;background-color:#00f;"></svg>
 <script>
+function moonRadiusKm()
+{
+	return 1737;
+}
+
+function sunRadiusKm()
+{
+	return 696300;
+}
+
+function earthRadiusKm()
+{
+	return 6371;
+}
+
+function percentageCoefficient()
+{
+	return 2129.532688930123140708462394161 * 2;
+}
+
 function getPlanetPositions()
 {
-	var url = "http://www.astro-phys.com/api/de406/states?bodies=earth,earthmoon,sun";
+	var url = "http://www.astro-phys.com/api/de406/states?bodies=earth,moon,sun";
 
 	$.getJSON(url, {}, usePlanetPositions);
 }
 
 function usePlanetPositions(planetPositions)
 {
-	printPlanetPositions(planetPositions)
-
+	printPlanetPositions(planetPositions);
 	normalizePlanetPositions(planetPositions);
+	printPlanetPositions(planetPositions);
 
-	printPlanetPositions(planetPositions)
+	drawPlanetsBasedOnPosition(planetPositions);
+}
+
+function drawPlanetsBasedOnPosition(planetPositions)
+{
+	var htmlString = "";
+
+	// calculate distance from moon
+	moonDistance = Math.sqrt(
+		Math.pow(planetPositions.results.moon[0][0],2) + 
+		Math.pow(planetPositions.results.moon[0][1],2) + 
+		Math.pow(planetPositions.results.moon[0][2],2))
+		- earthRadiusKm();
+
+	moonSizePercentage = ( (moonRadiusKm() * 2) / moonDistance ) * percentageCoefficient();
+	htmlString += "<circle cx=\"50%\" cy=\"50%\" r=\"" + moonSizePercentage + "\" fill=\"white\" />";
+
+	// calculate distance from Sun
+	sunDistance = Math.sqrt(
+		Math.pow(planetPositions.results.sun[0][0],2) + 
+		Math.pow(planetPositions.results.sun[0][1],2) + 
+		Math.pow(planetPositions.results.sun[0][2],2))
+		- earthRadiusKm();
+
+	sunSizePercentage = ( (sunRadiusKm() * 2) / sunDistance ) * percentageCoefficient();
+	htmlString += "<circle cx=\"25%\" cy=\"25%\" r=\"" + sunSizePercentage + "\" fill=\"yellow\" />";
+
+	$("#canvas").html(htmlString);
 }
 
 function printPlanetPositions(planetPositions)
 {
 	$("#earthState").html("Earth Position -- X: " + planetPositions.results.earth[0][0] + ", Y: " + planetPositions.results.earth[0][1] + ", Z: " + planetPositions.results.earth[0][2])
-	$("#earthMoonState").html("Moon Position -- X: " + planetPositions.results.earthmoon[0][0] + ", Y: " + planetPositions.results.earthmoon[0][1] + ", Z: " + planetPositions.results.earthmoon[0][2])
+	$("#moonState").html("Moon Position -- X: " + planetPositions.results.moon[0][0] + ", Y: " + planetPositions.results.moon[0][1] + ", Z: " + planetPositions.results.moon[0][2])
 	$("#sunState").html("Sun Position -- X: " + planetPositions.results.sun[0][0] + ", Y: " + planetPositions.results.sun[0][1] + ", Z: " + planetPositions.results.sun[0][2])
 }
 
 function normalizePlanetPositions(planetPositions)
 {
-	planetPositions.results.earthmoon[0][0] = planetPositions.results.earthmoon[0][0] - planetPositions.results.earth[0][0];
-	planetPositions.results.earthmoon[0][1] = planetPositions.results.earthmoon[0][1] - planetPositions.results.earth[0][1];
-	planetPositions.results.earthmoon[0][2] = planetPositions.results.earthmoon[0][2] - planetPositions.results.earth[0][2];
+	planetPositions.results.moon[0][0] = planetPositions.results.moon[0][0] - planetPositions.results.earth[0][0];
+	planetPositions.results.moon[0][1] = planetPositions.results.moon[0][1] - planetPositions.results.earth[0][1];
+	planetPositions.results.moon[0][2] = planetPositions.results.moon[0][2] - planetPositions.results.earth[0][2];
 	
 	planetPositions.results.sun[0][0] = planetPositions.results.sun[0][0] - planetPositions.results.earth[0][0];
 	planetPositions.results.sun[0][1] = planetPositions.results.sun[0][1] - planetPositions.results.earth[0][1];
