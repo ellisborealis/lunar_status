@@ -6,15 +6,47 @@
 	<script src="https://code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
 </head>
 <body>
-
+<button type="button" onclick="getPlanetPositions();">Get Planet Positions</button>
+<p id="earthState"></p>
+<p id="earthMoonState"></p>
+<p id="sunState"></p>
 <script>
-function getCurrentMoonPhase()
+function getPlanetPositions()
 {
-	var urlToApi = "http://farmsense-prod.apigee.net/v1/moonphases/?d=" + Math.floor(Date.now()/1000);
-	var dataToSendToApi = [];
-	return $.getJSON(urlToApi, dataToSendToApi, function(arg1, arg2, returnedData) {
-		return returnedData;
-	});
+	var url = "http://www.astro-phys.com/api/de406/states?bodies=earth,earthmoon,sun";
+
+	$.getJSON(url, {}, usePlanetPositions);
+}
+
+function usePlanetPositions(planetPositions)
+{
+	printPlanetPositions(planetPositions)
+
+	normalizePlanetPositions(planetPositions);
+
+	printPlanetPositions(planetPositions)
+}
+
+function printPlanetPositions(planetPositions)
+{
+	$("#earthState").html("Earth Position -- X: " + planetPositions.results.earth[0][0] + ", Y: " + planetPositions.results.earth[0][1] + ", Z: " + planetPositions.results.earth[0][2])
+	$("#earthMoonState").html("Moon Position -- X: " + planetPositions.results.earthmoon[0][0] + ", Y: " + planetPositions.results.earthmoon[0][1] + ", Z: " + planetPositions.results.earthmoon[0][2])
+	$("#sunState").html("Sun Position -- X: " + planetPositions.results.sun[0][0] + ", Y: " + planetPositions.results.sun[0][1] + ", Z: " + planetPositions.results.sun[0][2])
+}
+
+function normalizePlanetPositions(planetPositions)
+{
+	planetPositions.results.earthmoon[0][0] = planetPositions.results.earthmoon[0][0] - planetPositions.results.earth[0][0];
+	planetPositions.results.earthmoon[0][1] = planetPositions.results.earthmoon[0][1] - planetPositions.results.earth[0][1];
+	planetPositions.results.earthmoon[0][2] = planetPositions.results.earthmoon[0][2] - planetPositions.results.earth[0][2];
+	
+	planetPositions.results.sun[0][0] = planetPositions.results.sun[0][0] - planetPositions.results.earth[0][0];
+	planetPositions.results.sun[0][1] = planetPositions.results.sun[0][1] - planetPositions.results.earth[0][1];
+	planetPositions.results.sun[0][2] = planetPositions.results.sun[0][2] - planetPositions.results.earth[0][2];
+
+	planetPositions.results.earth[0][0] = planetPositions.results.earth[0][0] - planetPositions.results.earth[0][0];
+	planetPositions.results.earth[0][1] = planetPositions.results.earth[0][1] - planetPositions.results.earth[0][1];
+	planetPositions.results.earth[0][2] = planetPositions.results.earth[0][2] - planetPositions.results.earth[0][2];
 }
 </script>
 
