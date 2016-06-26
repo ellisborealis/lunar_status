@@ -1,3 +1,8 @@
 http://www.astro-phys.com/api
 
 using this url : "http://www.astro-phys.com/api/de406/states?bodies=earth,earthmoon,sun";
+
+
+http://api.sunrise-sunset.org
+
+using this url: http://api.sunrise-sunset.org/json?lat=39.9064589&lng=-74.8849802&formatted=0

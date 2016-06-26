@@ -4,6 +4,7 @@
 	<link rel="stylesheet" href="https://code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
 	<script src="https://code.jquery.com/jquery-1.10.2.js"></script>
 	<script src="https://code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
+	<script src="./ellis.js"></script>
 </head>
 <body>
 <button type="button" onclick="getPlanetPositions();" style="z-index:2;">Get Planet Positions</button>
@@ -15,6 +16,11 @@
 function moonRadiusKm()
 {
 	return 1737;
+}
+
+function getLatAndLong()
+{
+	return {"latitude":39.91, "longitude":-74.88};
 }
 
 function sunRadiusKm()
@@ -34,21 +40,32 @@ function percentageCoefficient()
 
 function getPlanetPositions()
 {
-	var url = "http://www.astro-phys.com/api/de406/states?bodies=earth,moon,sun";
+	var userLatLong = getLatAndLong();
 
-	$.getJSON(url, {}, usePlanetPositions);
+	var planetUrl = "http://www.astro-phys.com/api/de406/states?bodies=earth,moon,sun";
+	var solarUrl = "http://api.sunrise-sunset.org/json?lat=" + userLatLong.latitude + "&lng=" + userLatLong.longitude + "&formatted=0";
+
+	// solar eclipse time used for testing
+	// planetUrl += "&date=2017-2-26%2014:38:00"
+
+	$.when(
+		$.getJSON(planetUrl),
+		$.getJSON(solarUrl)
+	).done(usePlanetPositions)
 }
 
-function usePlanetPositions(planetPositions)
+function usePlanetPositions(planetPositions, solarPosition)
 {
-	printPlanetPositions(planetPositions);
+	planetPositions = planetPositions[0];
+	solarPosition = solarPosition[0];
+
 	normalizePlanetPositions(planetPositions);
 	printPlanetPositions(planetPositions);
 
-	drawPlanetsBasedOnPosition(planetPositions);
+	drawPlanetsBasedOnPosition(planetPositions, solarPosition);
 }
 
-function drawPlanetsBasedOnPosition(planetPositions)
+function drawPlanetsBasedOnPosition(planetPositions, solarPosition)
 {
 	var htmlString = "";
 
@@ -59,9 +76,6 @@ function drawPlanetsBasedOnPosition(planetPositions)
 		Math.pow(planetPositions.results.moon[0][2],2))
 		- earthRadiusKm();
 
-	moonSizePercentage = ( (moonRadiusKm() * 2) / moonDistance ) * percentageCoefficient();
-	htmlString += "<circle cx=\"50%\" cy=\"50%\" r=\"" + moonSizePercentage + "\" fill=\"white\" />";
-
 	// calculate distance from Sun
 	sunDistance = Math.sqrt(
 		Math.pow(planetPositions.results.sun[0][0],2) + 
@@ -69,10 +83,91 @@ function drawPlanetsBasedOnPosition(planetPositions)
 		Math.pow(planetPositions.results.sun[0][2],2))
 		- earthRadiusKm();
 
+	// get latitude and longitude of user
+	var latLongUser = getLatAndLong();
+	
+	var userOffsets = calculateAngleOffsetsOfUser(solarPosition, latLongUser); // Date.parse(solarPosition.results.solar_noon)
+
+	positionsInPercent = getSunPositionInTermsOfPercentages(planetPositions, userOffsets);
+
 	sunSizePercentage = ( (sunRadiusKm() * 2) / sunDistance ) * percentageCoefficient();
-	htmlString += "<circle cx=\"25%\" cy=\"25%\" r=\"" + sunSizePercentage + "\" fill=\"yellow\" />";
+	htmlString += "<circle cx=\"" + positionsInPercent.sun.xPercent + "%\" cy=\"" + positionsInPercent.sun.yPercent + "%\" r=\"" + sunSizePercentage + "\" fill=\"yellow\" />";
+	
+	moonSizePercentage = ( (moonRadiusKm() * 2) / moonDistance ) * percentageCoefficient();
+	htmlString += "<circle cx=\"" + positionsInPercent.moon.xPercent + "%\" cy=\"" + positionsInPercent.moon.yPercent + "%\" r=\"" + moonSizePercentage + "\" fill=\"white\" />";
 
 	$("#canvas").html(htmlString);
+}
+
+function calculateAngleOffsetsOfUser(solarPosition, latLongUser)
+{
+	var currentTimeEpoch = Date.now() / 1000;
+	var solarNoonTime = new Date(solarPosition.results.solar_noon);
+	var solarNoonTimeEpoch = solarNoonTime.getTime() / 1000;
+
+	var secondsPerDay = 60 * 60 * 24;
+	var radiansPerDay = Math.PI * 2;
+	var radiansPerSecond = radiansPerDay / secondsPerDay;
+
+	// when the time difference is zero, the sun will be directly overhead
+	var radiansFromHighNoon = (currentTimeEpoch - solarNoonTimeEpoch) * radiansPerSecond;
+
+	return {
+			"theta": radiansFromHighNoon,
+			"sigma": 0,
+		};
+}
+
+function getSunPositionInTermsOfPercentages(planetPositions, normalizationBasedOnLocation)
+{
+	// convert moon and sun to spherical coordinates
+	var moonTheta = Math.atan(
+		planetPositions.results.moon[0][2] / 
+		Math.sqrt(
+			Math.pow(planetPositions.results.moon[0][0],2) + 
+			Math.pow(planetPositions.results.moon[0][1],2)
+		)
+	);
+	var moonSigma = Math.atan(
+		planetPositions.results.moon[0][1] / 
+		planetPositions.results.moon[0][0]
+	);
+
+	var sunTheta = Math.atan(
+		planetPositions.results.sun[0][2] / 
+		Math.sqrt(
+			Math.pow(planetPositions.results.sun[0][0],2) + 
+			Math.pow(planetPositions.results.sun[0][1],2)
+		)
+	);
+	var sunSigma = Math.atan(
+		planetPositions.results.sun[0][1] / 
+		planetPositions.results.sun[0][0]
+	);
+
+	var normalizedMoonTheta = moonTheta - sunTheta - normalizationBasedOnLocation.theta;
+	var normalizedMoonSigma = moonSigma - sunSigma - normalizationBasedOnLocation.sigma;
+	
+	var normalizedSunTheta = sunTheta - sunTheta - normalizationBasedOnLocation.theta;
+	var normalizedSunSigma = sunSigma - sunSigma - normalizationBasedOnLocation.sigma;
+
+	return {
+		"sun":
+			{
+				"xPercent": convertToPercent(normalizedSunTheta),
+				"yPercent": convertToPercent(normalizedSunSigma),
+			},
+		"moon":
+			{
+				"xPercent": convertToPercent(normalizedMoonTheta),
+				"yPercent": convertToPercent(normalizedMoonSigma),
+			},
+		};
+}
+
+function convertToPercent(inputRadians)
+{
+	return ( ( trueModulus(inputRadians + (Math.PI), 2 * Math.PI) - Math.PI ) * (100 / (Math.PI))) + 50
 }
 
 function printPlanetPositions(planetPositions)
