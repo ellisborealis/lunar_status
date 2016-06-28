@@ -1,0 +1,13 @@
+	//keplerianData.
+	// now compute heliocentric coordinates in the j2000 ecliptic plane, with x axis aligned toward equinox
+	xEcl = 
+		(((cosd(argumentOfPerihelion) * cosd(keplerianData.Omega)) - (sind(argumentOfPerihelion) * sind(keplerianData.Omega) * cosd(keplerianData.I))) * xTick) + 
+		(((- sind(argumentOfPerihelion) * cosd(keplerianData.Omega)) - (cosd(argumentOfPerihelion) * sind(keplerianData.Omega) * cosd(keplerianData.I))) * yTick);
+	yEcl = 
+		(((cosd(argumentOfPerihelion) * sind(keplerianData.Omega)) + (sind(argumentOfPerihelion) * cosd(keplerianData.Omega) * cosd(keplerianData.I))) * xTick) + 
+		((( - sind(argumentOfPerihelion) * sind(keplerianData.Omega)) + (cosd(argumentOfPerihelion) * cosd(keplerianData.Omega) * cosd(keplerianData.I))) * yTick);
+	zEcl = 
+		((sind(argumentOfPerihelion) * sind(keplerianData.I)) * xTick) + 
+		((cosd(argumentOfPerihelion) * sind(keplerianData.I)) * yTick);
+
+	return {"X": xEcl, "Y": yEcl, "Z": zEcl, "Units": "au",}; // http://neo.jpl.nasa.gov/glossary/au.html

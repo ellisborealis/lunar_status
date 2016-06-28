@@ -60,3 +60,13 @@ function evenOrOdd(number)
 		return -1;
 	}
 }
+
+function cosd(inputInDegrees)
+{
+	return Math.cos((inputInDegrees / 180) * Math.PI);
+}
+
+function sind(inputInDegrees)
+{
+	return Math.sin((inputInDegrees / 180) * Math.PI);
+}
